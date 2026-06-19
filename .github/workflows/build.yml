@@ -1,0 +1,91 @@
+name: 构建内核
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - AospaFuxi
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout kernel source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y \
+            llvm clang lld \
+            flex bison bc \
+            libssl-dev libelf-dev \
+            cpio zip \
+            git wget
+
+      - name: Setup ReSukiSU
+        run: |
+          rm -rf KernelSU
+          git clone --depth=1 https://github.com/ReSukiSU/ReSukiSU.git KernelSU
+          rm -f drivers/kernelsu
+          ln -sf ../KernelSU/kernel drivers/kernelsu
+
+      - name: Setup Re:Kernel
+        run: |
+          mkdir -p drivers/rekernel
+          cp -f Re-Kernel/LKM-Source/rekernel.c drivers/rekernel/
+          cp -f Re-Kernel/LKM-Source/rekernel.h drivers/rekernel/
+
+      - name: Configure kernel
+        run: |
+          export ARCH=arm64
+          export SUBARCH=arm64
+          make LLVM=1 LLVM_IAS=1 O=out LOCALVERSION=-By@Samrtin fuxi_defconfig -j$(nproc --all)
+
+      - name: Build kernel
+        run: |
+          export ARCH=arm64
+          export SUBARCH=arm64
+          make LLVM=1 LLVM_IAS=1 O=out LOCALVERSION=-By@Samrtin Image -j$(nproc --all) 2>&1 | tee out/build.log
+          if [ ${PIPESTATUS[0]} -ne 0 ]; then
+            echo "Build failed"
+            exit 1
+          fi
+
+      - name: Package flashable zip
+        run: |
+          if [ -d AnyKernel3 ] && [ -f out/arch/arm64/boot/Image ]; then
+            rm -rf out/AnyKernel3
+            cp -r AnyKernel3 out/
+            cp out/arch/arm64/boot/Image out/AnyKernel3/Image
+            cd out/AnyKernel3
+            ZIPNAME="AospaFuxi-resukisu-$(date -u '+%Y%m%d-%H%M').zip"
+            zip -r9 "$ZIPNAME" .
+            mv "$ZIPNAME" ../../
+            echo "Zip created"
+          else
+            echo "Image not found"
+            exit 1
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AospaFuxi-Kernel
+          path: "*.zip"
+          if-no-files-found: warn
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2.0.7
+        if: github.ref == 'refs/heads/AospaFuxi'
+        with:
+          tag_name: AospaFuxi-${{ github.run_number }}
+          name: AospaFuxi 内核 #${{ github.run_number }}
+          files: "*.zip"
+          token: ${{ secrets.GITHUB_TOKEN }}
+          generate_release_notes: false

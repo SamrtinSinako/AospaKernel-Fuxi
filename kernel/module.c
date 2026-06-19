@@ -4174,7 +4174,8 @@ static int load_module(struct load_info *info, const char __user *uargs,
 	if (IS_ENABLED(CONFIG_INTEGRATE_MODULES)) {
 		/* Load the built-in version of this module */
 		err = load_integrated_module(info->name, uargs);
-		goto free_copy;
+		if (!err)
+			goto free_copy;
 	}
 
 	/*
