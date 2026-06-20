@@ -6,6 +6,9 @@ on:
     branches:
       - AospaFuxi
 
+env:
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: 'true'
+
 permissions:
   contents: write
 
@@ -16,7 +19,7 @@ jobs:
       - name: Checkout kernel source
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: Install dependencies
         run: |
@@ -26,7 +29,7 @@ jobs:
             flex bison bc \
             libssl-dev libelf-dev \
             cpio zip \
-            git wget
+            git wget ccache
 
       - name: Setup ReSukiSU
         run: |
@@ -41,16 +44,19 @@ jobs:
           cp -f Re-Kernel/LKM-Source/rekernel.c drivers/rekernel/
           cp -f Re-Kernel/LKM-Source/rekernel.h drivers/rekernel/
 
-      - name: Configure kernel
-        run: |
-          export ARCH=arm64
-          export SUBARCH=arm64
-          make LLVM=1 LLVM_IAS=1 O=out LOCALVERSION=-By@Samrtin fuxi_defconfig -j$(nproc --all)
+      - name: Restore ccache
+        uses: actions/cache@v4
+        with:
+          path: ~/.ccache
+          key: ccache-AospaFuxi
+          restore-keys: ccache-
 
       - name: Build kernel
         run: |
           export ARCH=arm64
           export SUBARCH=arm64
+          export PATH="/usr/lib/ccache:$PATH"
+          make LLVM=1 LLVM_IAS=1 O=out LOCALVERSION=-By@Samrtin fuxi_defconfig -j$(nproc --all)
           make LLVM=1 LLVM_IAS=1 O=out LOCALVERSION=-By@Samrtin Image -j$(nproc --all) 2>&1 | tee out/build.log
           if [ ${PIPESTATUS[0]} -ne 0 ]; then
             echo "Build failed"
@@ -81,7 +87,7 @@ jobs:
           if-no-files-found: warn
 
       - name: Create Release
-        uses: softprops/action-gh-release@v2.0.7
+        uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/AospaFuxi'
         with:
           tag_name: AospaFuxi-${{ github.run_number }}
