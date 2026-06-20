@@ -44,11 +44,14 @@ jobs:
           cp -f Re-Kernel/LKM-Source/rekernel.c drivers/rekernel/
           cp -f Re-Kernel/LKM-Source/rekernel.h drivers/rekernel/
 
+      - name: Prepare ccache
+        run: mkdir -p ~/.ccache
+
       - name: Restore ccache
         uses: actions/cache@v4
         with:
           path: ~/.ccache
-          key: ccache-AospaFuxi
+          key: ccache-${{ github.ref_name }}
           restore-keys: ccache-
 
       - name: Build kernel
@@ -56,6 +59,8 @@ jobs:
           export ARCH=arm64
           export SUBARCH=arm64
           export PATH="/usr/lib/ccache:$PATH"
+          export CCACHE_DIR=~/.ccache
+          ccache -M 8G
           make LLVM=1 LLVM_IAS=1 O=out LOCALVERSION=-By@Samrtin fuxi_defconfig -j$(nproc --all)
           make LLVM=1 LLVM_IAS=1 O=out LOCALVERSION=-By@Samrtin Image -j$(nproc --all) 2>&1 | tee out/build.log
           if [ ${PIPESTATUS[0]} -ne 0 ]; then
