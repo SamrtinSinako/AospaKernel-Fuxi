@@ -45,8 +45,10 @@ jobs:
           rm -f drivers/kernelsu
           ln -sf ../KernelSU/kernel drivers/kernelsu
 
-      - name: Setup Re:Kernel
+      - name: Setup Re:Kernel (with git for auto-update)
         run: |
+          rm -rf Re-Kernel
+          git clone --depth=1 https://github.com/myflavor/Re-Kernel.git Re-Kernel
           mkdir -p drivers/rekernel
           cp -f Re-Kernel/LKM-Source/rekernel.c drivers/rekernel/
           cp -f Re-Kernel/LKM-Source/rekernel.h drivers/rekernel/
