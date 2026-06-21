@@ -1,0 +1,97 @@
+name: 构建 FP 内核
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - FP-Build
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout kernel source
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+          submodules: false
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y \
+            bc bison build-essential ccache curl flex g++-multilib \
+            gcc-multilib git gnupg libssl-dev libelf-dev \
+            cpio zip xz-utils wget python3 unzip
+
+      - name: Setup Neutron Clang
+        run: |
+          mkdir -p toolchains/clang
+          cd toolchains/clang
+          curl -LO "https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman"
+          chmod +x antman
+          ./antman -S
+
+      - name: Setup Re:Kernel (with git for auto-update)
+        run: |
+          rm -rf Re-Kernel
+          git clone --depth=1 https://github.com/myflavor/Re-Kernel.git Re-Kernel
+          mkdir -p drivers/rekernel
+          cp -f Re-Kernel/LKM-Source/rekernel.c drivers/rekernel/
+          cp -f Re-Kernel/LKM-Source/rekernel.h drivers/rekernel/
+
+      - name: Prepare ccache
+        run: mkdir -p ~/.ccache
+
+      - name: Restore ccache
+        uses: actions/cache@v5
+        with:
+          path: ~/.ccache
+          key: ccache-fp-${{ github.ref_name }}
+          restore-keys: ccache-fp-
+
+      - name: Build kernel with FolkPatch
+        run: |
+          export PATH="$(pwd)/toolchains/clang/bin:/usr/lib/ccache:$PATH"
+          export CCACHE_DIR=~/.ccache
+          ccache -M 8G
+          bash build.sh
+          # 把 zip 从 ~/ 复制到工作区
+          cp ~/AospaFuxi-FP-*.zip ./ 2>/dev/null || true
+
+      - name: Upload to Telegram
+        env:
+          TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
+        run: |
+          ZIP_FILE=$(ls AospaFuxi-FP-*.zip)
+          if [ -n "$ZIP_FILE" ] && [ -n "$TOKEN" ] && [ -n "$CHAT_ID" ]; then
+            KERNEL_VER=$(grep 'Linux version' out/build.log 2>/dev/null | head -1 || echo "5.15.185-FP")
+            curl -s -F chat_id="$CHAT_ID" \
+              -F document=@"$ZIP_FILE" \
+              -F "caption=✅ FP 内核编译完成 - ${KERNEL_VER} - 构建号: FP-Build-${{ github.run_number }}" \
+              "https://api.telegram.org/bot${TOKEN}/sendDocument"
+          else
+            echo "Telegram upload skipped (missing token/chat_id or zip)"
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: AospaFuxi-FP-Kernel
+          path: "AospaFuxi-FP-*.zip"
+          if-no-files-found: error
+
+      - name: Create Release
+        if: github.ref == 'refs/heads/FP-Build'
+        run: |
+          GH_TOKEN=${{ github.token }} gh release create FP-Build-${{ github.run_number }} AospaFuxi-FP-*.zip \
+            --repo ${{ github.repository }} \
+            --title "AospaFuxi FP 内核 #${{ github.run_number }}" \
+            --generate-notes
