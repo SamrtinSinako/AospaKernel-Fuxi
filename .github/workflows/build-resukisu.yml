@@ -103,9 +103,7 @@ jobs:
           if [ -n "$ZIP_FILE" ] && [ -n "$TOKEN" ] && [ -n "$CHAT_ID" ]; then
             curl -s -F chat_id="$CHAT_ID" \
               -F document=@"$ZIP_FILE" \
-              -F caption="✅ AospaFuxi 内核编译完成
-构建号: AospaFuxi-${{ github.run_number }}
-提交: ${{ github.sha }}" \
+              -F "caption=✅ AospaFuxi 内核编译完成 - 构建号: AospaFuxi-${{ github.run_number }}" \
               "https://api.telegram.org/bot${TOKEN}/sendDocument"
           else
             echo "Telegram upload skipped (missing token/chat_id or zip)"
