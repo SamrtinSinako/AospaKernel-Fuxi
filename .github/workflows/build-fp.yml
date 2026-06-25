@@ -75,7 +75,7 @@ jobs:
             KERNEL_VER=$(grep 'Linux version' out/build.log 2>/dev/null | head -1 || echo "5.15.185-FP")
             curl -s -F chat_id="$CHAT_ID" \
               -F document=@"$ZIP_FILE" \
-              -F "caption=✅ FP 内核编译完成 - ${KERNEL_VER} - 构建号: FP-Build-${{ github.run_number }}" \
+              -F "caption=✅ FolkPatch 内核编译完成 - ${KERNEL_VER} - 构建号: FP-Build-${{ github.run_number }}" \
               "https://api.telegram.org/bot${TOKEN}/sendDocument"
           else
             echo "Telegram upload skipped (missing token/chat_id or zip)"
@@ -93,5 +93,5 @@ jobs:
         run: |
           GH_TOKEN=${{ github.token }} gh release create FP-Build-${{ github.run_number }} AospaFuxi-FP-*.zip \
             --repo ${{ github.repository }} \
-            --title "AospaFuxi FP 内核 #${{ github.run_number }}" \
+            --title "FolkPatch 内核 #${{ github.run_number }}" \
             --generate-notes

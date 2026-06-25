@@ -29,7 +29,6 @@ jobs:
             gcc-multilib git gnupg libssl-dev libelf-dev \
             cpio zip xz-utils wget python3
 
-
       - name: Setup Neutron Clang
         run: |
           mkdir -p toolchains/clang
@@ -85,7 +84,7 @@ jobs:
             cp -r AnyKernel3 out/
             cp out/arch/arm64/boot/Image out/AnyKernel3/Image
             cd out/AnyKernel3
-            ZIPNAME="AospaFuxi-resukisu-$(date -u '+%Y%m%d-%H%M').zip"
+            ZIPNAME="Fuxi-ResukiSU-$(date -u '+%Y%m%d-%H%M').zip"
             zip -r9 "$ZIPNAME" .
             mv "$ZIPNAME" ../../
             echo "Zip created"
@@ -99,11 +98,11 @@ jobs:
           TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           CHAT_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
         run: |
-          ZIP_FILE=$(ls AospaFuxi-resukisu-*.zip)
+          ZIP_FILE=$(ls Fuxi-ResukiSU-*.zip 2>/dev/null | head -1)
           if [ -n "$ZIP_FILE" ] && [ -n "$TOKEN" ] && [ -n "$CHAT_ID" ]; then
             curl -s -F chat_id="$CHAT_ID" \
               -F document=@"$ZIP_FILE" \
-              -F "caption=✅ AospaFuxi 内核编译完成 - 构建号: AospaFuxi-${{ github.run_number }}" \
+              -F "caption=✅ ReSukiSU 内核编译完成 - 构建号: AospaFuxi-${{ github.run_number }}" \
               "https://api.telegram.org/bot${TOKEN}/sendDocument"
           else
             echo "Telegram upload skipped (missing token/chat_id or zip)"
@@ -113,13 +112,13 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: AospaFuxi-Kernel
-          path: "*.zip"
+          path: "Fuxi-ResukiSU-*.zip"
           if-no-files-found: warn
 
       - name: Create Release
         if: github.ref == 'refs/heads/AospaFuxi'
         run: |
-          GH_TOKEN=${{ github.token }} gh release create AospaFuxi-${{ github.run_number }} *.zip \
+          GH_TOKEN=${{ github.token }} gh release create AospaFuxi-${{ github.run_number }} Fuxi-ResukiSU-*.zip \
             --repo ${{ github.repository }} \
-            --title "AospaFuxi 内核 #${{ github.run_number }}" \
+            --title "ReSukiSU 内核 #${{ github.run_number }}" \
             --generate-notes
