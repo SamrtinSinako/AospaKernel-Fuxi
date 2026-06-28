@@ -49,8 +49,7 @@ jobs:
           rm -rf Re-Kernel
           git clone --depth=1 https://github.com/myflavor/Re-Kernel.git Re-Kernel
           mkdir -p drivers/rekernel
-          cp -f Re-Kernel/LKM-Source/rekernel.c drivers/rekernel/
-          cp -f Re-Kernel/LKM-Source/rekernel.h drivers/rekernel/
+          cp -f Re-Kernel/LKM-Source/rekernel*.c drivers/rekernel/
 
       - name: Prepare ccache
         run: mkdir -p ~/.ccache
