@@ -49,7 +49,11 @@ jobs:
           rm -rf Re-Kernel
           git clone --depth=1 https://github.com/myflavor/ReKernel-X.git Re-Kernel
           mkdir -p drivers/rekernel
-          cp -f Re-Kernel/LKM-Source/rekernel*.c drivers/rekernel/
+          cp -f Re-Kernel/LKM-Source/rekernel_x*.c drivers/rekernel/
+          cp -f Re-Kernel/LKM-Source/rekernel_x*.h drivers/rekernel/
+          # 生成适配内置编译的Makefile(多文件结构)
+          echo 'obj-$(CONFIG_REKERNEL) += rekernel_x.o' > drivers/rekernel/Makefile
+          echo 'rekernel_x-y := rekernel_x_main.o rekernel_x_genl.o rekernel_x_netuid.o rekernel_x_frozen.o rekernel_x_binder.o rekernel_x_signal.o rekernel_x_netfilter.o rekernel_x_binder_kp.o' >> drivers/rekernel/Makefile
 
       - name: Prepare ccache
         run: mkdir -p ~/.ccache
