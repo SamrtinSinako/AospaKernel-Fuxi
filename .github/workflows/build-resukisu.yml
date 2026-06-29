@@ -47,7 +47,7 @@ jobs:
       - name: Setup Re:Kernel (with git for auto-update)
         run: |
           rm -rf Re-Kernel
-          git clone --depth=1 https://github.com/myflavor/Re-Kernel.git Re-Kernel
+          git clone --depth=1 https://github.com/myflavor/ReKernel-X.git Re-Kernel
           mkdir -p drivers/rekernel
           cp -f Re-Kernel/LKM-Source/rekernel*.c drivers/rekernel/
 
