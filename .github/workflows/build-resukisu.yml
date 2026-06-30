@@ -2,6 +2,17 @@ name: 构建 ReSukiSU 内核
 
 on:
   workflow_dispatch:
+    inputs:
+      rekernel_branch:
+        description: 'ReKernel-X分支'
+        required: false
+        default: main
+        type: choice
+        options:
+          - main
+          - dev
+          - upstream/main
+          - upstream/v9.2
   push:
     branches:
       - ReSukiSU-Build
@@ -47,7 +58,7 @@ jobs:
       - name: Setup Re:Kernel (with git for auto-update)
         run: |
           rm -rf Re-Kernel
-          git clone --depth=1 https://github.com/myflavor/ReKernel-X.git Re-Kernel
+          git clone --depth=1 -b ${{ inputs.rekernel_branch || 'main' }} https://github.com/myflavor/ReKernel-X.git Re-Kernel
           mkdir -p drivers/rekernel
           cp -f Re-Kernel/LKM-Source/rekernel_x*.c drivers/rekernel/
           cp -f Re-Kernel/LKM-Source/rekernel_x*.h drivers/rekernel/
