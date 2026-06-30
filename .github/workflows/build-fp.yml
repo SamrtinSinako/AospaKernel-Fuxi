@@ -95,7 +95,7 @@ jobs:
           if-no-files-found: error
 
       - name: Create Release
-        if: github.event_name == 'push' && github.ref == 'refs/heads/FP-Build'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/FolkPatch-Build'
         run: |
           GH_TOKEN=${{ github.token }} gh release create FP-Build-${{ github.run_number }} Fuxi-FolkPatch-*.zip \
             --repo ${{ github.repository }} \

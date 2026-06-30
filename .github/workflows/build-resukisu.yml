@@ -131,9 +131,9 @@ jobs:
           if-no-files-found: warn
 
       - name: Create Release
-        if: github.ref == 'refs/heads/AospaFuxi'
+        if: github.ref == 'refs/heads/ReSukiSU-Build'
         run: |
-          GH_TOKEN=${{ github.token }} gh release create AospaFuxi-${{ github.run_number }} Fuxi-ResukiSU-*.zip \
+          GH_TOKEN=${{ github.token }} gh release create ReSukiSU-Build-${{ github.run_number }} Fuxi-ResukiSU-*.zip \
             --repo ${{ github.repository }} \
             --title "ReSukiSU 内核 #${{ github.run_number }}" \
             --generate-notes
