@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - AospaFuxi
+      - ReSukiSU-Build
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -82,11 +82,11 @@ jobs:
 
       - name: Package flashable zip
         run: |
-          if [ -d AnyKernel3 ] && [ -f out/arch/arm64/boot/Image ]; then
-            rm -rf out/AnyKernel3
-            cp -r AnyKernel3 out/
-            cp out/arch/arm64/boot/Image out/AnyKernel3/Image
-            cd out/AnyKernel3
+          if [ -d AK3 ] && [ -f out/arch/arm64/boot/Image ]; then
+            rm -rf out/AK3
+            cp -r AK3 out/
+            cp out/arch/arm64/boot/Image out/tools/AK3/Image
+            cd out/AK3
             ZIPNAME="Fuxi-ResukiSU-$(date -u '+%Y%m%d-%H%M').zip"
             zip -r9 "$ZIPNAME" .
             mv "$ZIPNAME" ../../

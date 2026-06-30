@@ -1,10 +1,10 @@
-name: 构建 FP 内核
+name: 构建 FolkPatch 内核
 
 on:
   workflow_dispatch:
   push:
     branches:
-      - FP-Build
+      - FolkPatch-Build
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout kernel source
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
         with:
           fetch-depth: 1
           submodules: false
@@ -43,8 +43,11 @@ jobs:
           rm -rf Re-Kernel
           git clone --depth=1 https://github.com/myflavor/ReKernel-X.git Re-Kernel
           mkdir -p drivers/rekernel
-          cp -f Re-Kernel/LKM-Source/rekernel.c drivers/rekernel/
-          cp -f Re-Kernel/LKM-Source/rekernel.h drivers/rekernel/
+          cp -f Re-Kernel/LKM-Source/rekernel*.c drivers/rekernel/
+          cp -f Re-Kernel/LKM-Source/rekernel*.h drivers/rekernel/
+          # 生成适配内置编译的Makefile(多文件结构)
+          echo 'obj-$(CONFIG_REKERNEL) += rekernel.o' > drivers/rekernel/Makefile
+          echo 'rekernel-y := rekernel_x_main.o rekernel_x_genl.o rekernel_x_netuid.o rekernel_x_frozen.o rekernel_x_binder.o rekernel_x_signal.o rekernel_x_netfilter.o rekernel_x_binder_kp.o' >> drivers/rekernel/Makefile
 
       - name: Prepare ccache
         run: mkdir -p ~/.ccache
@@ -62,36 +65,38 @@ jobs:
           export CCACHE_DIR=~/.ccache
           ccache -M 8G
           bash build.sh
-          # 把 zip 从 ~/ 复制到工作区
-          cp ~/AospaFuxi-FP-*.zip ./ 2>/dev/null || true
+          cp ~/Fuxi-FolkPatch-*.zip ./ 2>/dev/null || true
 
       - name: Upload to Telegram
         env:
           TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           CHAT_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
         run: |
-          ZIP_FILE=$(ls AospaFuxi-FP-*.zip)
-          if [ -n "$ZIP_FILE" ] && [ -n "$TOKEN" ] && [ -n "$CHAT_ID" ]; then
-            KERNEL_VER=$(grep 'Linux version' out/build.log 2>/dev/null | head -1 || echo "5.15.185-FP")
+          ZIP_FILE=$(ls Fuxi-FolkPatch-*.zip 2>/dev/null | head -1)
+          if [ -z "$ZIP_FILE" ]; then
+            echo "找不到 ZIP 文件，跳过上传"
+            exit 0
+          fi
+          if [ -n "$TOKEN" ] && [ -n "$CHAT_ID" ]; then
             curl -s -F chat_id="$CHAT_ID" \
               -F document=@"$ZIP_FILE" \
-              -F "caption=✅ FolkPatch 内核编译完成 - ${KERNEL_VER} - 构建号: FP-Build-${{ github.run_number }}" \
+              -F "caption=✅ FolkPatch 内核编译完成 - 构建号: FP-Build-${{ github.run_number }}" \
               "https://api.telegram.org/bot${TOKEN}/sendDocument"
           else
-            echo "Telegram upload skipped (missing token/chat_id or zip)"
+            echo "Telegram upload skipped (missing token/chat_id)"
           fi
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
-          name: AospaFuxi-FP-Kernel
-          path: "AospaFuxi-FP-*.zip"
+          name: FolkPatch-Kernel
+          path: "Fuxi-FolkPatch-*.zip"
           if-no-files-found: error
 
       - name: Create Release
-        if: github.ref == 'refs/heads/FP-Build'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/FP-Build'
         run: |
-          GH_TOKEN=${{ github.token }} gh release create FP-Build-${{ github.run_number }} AospaFuxi-FP-*.zip \
+          GH_TOKEN=${{ github.token }} gh release create FP-Build-${{ github.run_number }} Fuxi-FolkPatch-*.zip \
             --repo ${{ github.repository }} \
             --title "FolkPatch 内核 #${{ github.run_number }}" \
             --generate-notes
