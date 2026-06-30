@@ -40,7 +40,7 @@ fi
 
 # Prepare AnyKernel3 flashable zip
 rm -rf out/AnyKernel3
-cp -r AnyKernel3 out/
+cp -r tools/AK3 out/
 
 cp out/arch/arm64/boot/Image out/AnyKernel3/Image
 cd out/AnyKernel3

@@ -38,7 +38,7 @@ jobs:
           sudo apt install -y \
             bc bison build-essential ccache curl flex g++-multilib \
             gcc-multilib git gnupg libssl-dev libelf-dev \
-            cpio zip xz-utils wget python3
+            cpio zip xz-utils wget python3 dwarves
 
       - name: Setup Neutron Clang
         run: |
@@ -83,6 +83,7 @@ jobs:
           export PATH="$(pwd)/toolchains/clang/bin:/usr/lib/ccache:$PATH"
           export CCACHE_DIR=~/.ccache
           ccache -M 8G
+          export PAHOLE_FLAGS="--jobs=$(nproc) --skip_encoding_btf_inconsistent_proto --skip_encoding_btf_enum64"
           make LLVM=1 LLVM_IAS=1 O=out LOCALVERSION=-By@Samrtin fuxi_defconfig -j$(nproc --all)
           make LLVM=1 LLVM_IAS=1 O=out olddefconfig 2>&1 | tail -3
           make LLVM=1 LLVM_IAS=1 O=out LOCALVERSION=-By@Samrtin Image -j$(nproc --all) 2>&1 | tee out/build.log
@@ -93,10 +94,10 @@ jobs:
 
       - name: Package flashable zip
         run: |
-          if [ -d AK3 ] && [ -f out/arch/arm64/boot/Image ]; then
+          if [ -d tools/AK3 ] && [ -f out/arch/arm64/boot/Image ]; then
             rm -rf out/AK3
-            cp -r AK3 out/
-            cp out/arch/arm64/boot/Image out/tools/AK3/Image
+            cp -r tools/AK3 out/
+            cp out/arch/arm64/boot/Image out/AK3/Image
             cd out/AK3
             ZIPNAME="Fuxi-ResukiSU-$(date -u '+%Y%m%d-%H%M').zip"
             zip -r9 "$ZIPNAME" .

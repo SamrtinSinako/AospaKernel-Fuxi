@@ -28,7 +28,7 @@ jobs:
           sudo apt install -y \
             bc bison build-essential ccache curl flex g++-multilib \
             gcc-multilib git gnupg libssl-dev libelf-dev \
-            cpio zip xz-utils wget python3 unzip
+            cpio zip xz-utils wget python3 unzip dwarves
 
       - name: Setup Neutron Clang
         run: |
@@ -64,6 +64,7 @@ jobs:
           export PATH="$(pwd)/toolchains/clang/bin:/usr/lib/ccache:$PATH"
           export CCACHE_DIR=~/.ccache
           ccache -M 8G
+          export PAHOLE_FLAGS="--jobs=$(nproc) --skip_encoding_btf_inconsistent_proto --skip_encoding_btf_enum64"
           bash build.sh
           cp ~/Fuxi-FolkPatch-*.zip ./ 2>/dev/null || true
 
