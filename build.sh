@@ -27,7 +27,7 @@ if [ -d Re-Kernel/LKM-Source ]; then
     cp -f Re-Kernel/LKM-Source/rekernel.h drivers/rekernel/
 fi
 
-MAKE_PARAMS="LLVM=1 LLVM_IAS=1 O=out LOCALVERSION=-By@Samrtin"
+MAKE_PARAMS="LLVM=1 LLVM_IAS=1 O=out LOCALVERSION=-AOSPA-BY@Samrtin"
 
 mkdir -p out
 make $MAKE_PARAMS fuxi_defconfig -j$(nproc --all)

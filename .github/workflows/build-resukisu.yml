@@ -117,7 +117,7 @@ jobs:
           export PATH="$(pwd)/toolchains/clang/bin:/usr/lib/ccache:$PATH"
           export CCACHE_DIR=~/.ccache
           ccache -M 8G
-          make LLVM=1 LLVM_IAS=1 O=out LOCALVERSION=-By@Samrtin fuxi_defconfig -j$(nproc --all)
+          make LLVM=1 LLVM_IAS=1 O=out LOCALVERSION=-AOSPA-BY@Samrtin fuxi_defconfig -j$(nproc --all)
           make LLVM=1 LLVM_IAS=1 O=out olddefconfig 2>&1 | tail -3
 
       - name: Fix SUSFS hook mode (override olddefconfig default)
@@ -142,7 +142,7 @@ jobs:
           export PATH="$(pwd)/toolchains/clang/bin:/usr/lib/ccache:$PATH"
           export CCACHE_DIR=~/.ccache
           ccache -M 8G
-          make LLVM=1 LLVM_IAS=1 O=out LOCALVERSION=-By@Samrtin Image -j$(nproc --all) 2>&1 | tee out/build.log
+          make LLVM=1 LLVM_IAS=1 O=out LOCALVERSION=-AOSPA-BY@Samrtin Image -j$(nproc --all) 2>&1 | tee out/build.log
           if [ ${PIPESTATUS[0]} -ne 0 ]; then
             echo "Build failed"
             exit 1
