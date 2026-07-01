@@ -9,10 +9,20 @@ on:
         default: main
         type: choice
         options:
-          - main
-          - dev
           - upstream/main
           - upstream/v9.2
+          - main
+          - dev
+      hook_type:
+        description: '钩子类型'
+        required: false
+        default: Tracepoint
+        type: choice
+        options:
+          - upstream/main
+          - upstream/v9.2
+          - Tracepoint
+          - linehook
   push:
     branches:
       - ReSukiSU-Build
@@ -60,11 +70,37 @@ jobs:
           rm -rf Re-Kernel
           git clone --depth=1 -b ${{ inputs.rekernel_branch || 'main' }} https://github.com/myflavor/ReKernel-X.git Re-Kernel
           mkdir -p drivers/rekernel
-          cp -f Re-Kernel/LKM-Source/rekernel_x*.c drivers/rekernel/
-          cp -f Re-Kernel/LKM-Source/rekernel_x*.h drivers/rekernel/
-          # 生成适配内置编译的Makefile(多文件结构)
-          echo 'obj-$(CONFIG_REKERNEL) += rekernel_x.o' > drivers/rekernel/Makefile
-          echo 'rekernel_x-y := rekernel_x_main.o rekernel_x_genl.o rekernel_x_netuid.o rekernel_x_frozen.o rekernel_x_binder.o rekernel_x_signal.o rekernel_x_netfilter.o rekernel_x_binder_kp.o' >> drivers/rekernel/Makefile
+          # 兼容新结构(rekernel_x*)和旧结构(rekernel)
+          if ls Re-Kernel/LKM-Source/rekernel_x*.c 1>/dev/null 2>&1; then
+            cp -f Re-Kernel/LKM-Source/rekernel_x*.c drivers/rekernel/
+            cp -f Re-Kernel/LKM-Source/rekernel_x*.h drivers/rekernel/
+            echo 'obj-$(CONFIG_REKERNEL) += rekernel_x.o' > drivers/rekernel/Makefile
+            echo 'rekernel_x-y := rekernel_x_main.o rekernel_x_genl.o rekernel_x_netuid.o rekernel_x_frozen.o rekernel_x_binder.o rekernel_x_signal.o rekernel_x_netfilter.o rekernel_x_binder_kp.o' >> drivers/rekernel/Makefile
+          else
+            cp -f Re-Kernel/LKM-Source/rekernel.c drivers/rekernel/
+            cp -f Re-Kernel/LKM-Source/rekernel.h drivers/rekernel/
+            echo 'obj-$(CONFIG_REKERNEL) += rekernel.o' > drivers/rekernel/Makefile
+          fi
+
+      - name: Setup SUSFS (optional)
+        if: inputs.hook_type == 'linehook'
+        run: |
+          git clone --depth=1 -b gki-android13-5.15 https://gitlab.com/simonpunk/susfs4ksu.git susfs4ksu
+          cp susfs4ksu/kernel_patches/50_add_susfs_in_gki-android13-5.15.patch ./
+          cp -r susfs4ksu/kernel_patches/fs/* ./fs/
+          cp -r susfs4ksu/kernel_patches/include/* ./include/
+          patch -p1 < 50_add_susfs_in_gki-android13-5.15.patch
+          echo '# CONFIG_KSU_TRACEPOINT_HOOK is not set' >> arch/arm64/configs/fuxi_defconfig
+          echo 'CONFIG_KSU_SUSFS=y' >> arch/arm64/configs/fuxi_defconfig
+          echo 'CONFIG_KSU_SUSFS_SUS_PATH=y' >> arch/arm64/configs/fuxi_defconfig
+          echo 'CONFIG_KSU_SUSFS_SUS_MOUNT=y' >> arch/arm64/configs/fuxi_defconfig
+          echo 'CONFIG_KSU_SUSFS_SUS_KSTAT=y' >> arch/arm64/configs/fuxi_defconfig
+          echo 'CONFIG_KSU_SUSFS_SPOOF_UNAME=y' >> arch/arm64/configs/fuxi_defconfig
+          echo 'CONFIG_KSU_SUSFS_ENABLE_LOG=y' >> arch/arm64/configs/fuxi_defconfig
+          echo 'CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS=y' >> arch/arm64/configs/fuxi_defconfig
+          echo 'CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG=y' >> arch/arm64/configs/fuxi_defconfig
+          echo 'CONFIG_KSU_SUSFS_OPEN_REDIRECT=y' >> arch/arm64/configs/fuxi_defconfig
+          echo 'CONFIG_KSU_SUSFS_SUS_MAP=y' >> arch/arm64/configs/fuxi_defconfig
 
       - name: Prepare ccache
         run: mkdir -p ~/.ccache
@@ -85,6 +121,29 @@ jobs:
           ccache -M 8G
           make LLVM=1 LLVM_IAS=1 O=out LOCALVERSION=-By@Samrtin fuxi_defconfig -j$(nproc --all)
           make LLVM=1 LLVM_IAS=1 O=out olddefconfig 2>&1 | tail -3
+
+      - name: Fix SUSFS hook mode (override olddefconfig default)
+        if: inputs.hook_type == 'linehook'
+        run: |
+          scripts/config --file out/.config --disable KSU_TRACEPOINT_HOOK --enable KSU_SUSFS
+
+      - name: Set version and build info
+        run: |
+          # ReSukiSU版本号: v4.1.0-Samrtin@ReSukiSU
+          scripts/config --file out/.config --set-str KSU_FULL_NAME_FORMAT "%TAG_NAME%-Samrtin@%REPO_NAME%"
+          # 构建号信息
+          echo "BUILD_NUM=${{ github.run_number }}" >> $GITHUB_ENV
+          echo "BRANCH_NAME=${{ github.ref_name }}" >> $GITHUB_ENV
+          echo "REKERNEL_BRANCH=${{ inputs.rekernel_branch || 'main' }}" >> $GITHUB_ENV
+          echo "HOOK_TYPE=${{ inputs.hook_type }}" >> $GITHUB_ENV
+
+      - name: Build kernel
+        run: |
+          export ARCH=arm64
+          export SUBARCH=arm64
+          export PATH="$(pwd)/toolchains/clang/bin:/usr/lib/ccache:$PATH"
+          export CCACHE_DIR=~/.ccache
+          ccache -M 8G
           make LLVM=1 LLVM_IAS=1 O=out LOCALVERSION=-By@Samrtin Image -j$(nproc --all) 2>&1 | tee out/build.log
           if [ ${PIPESTATUS[0]} -ne 0 ]; then
             echo "Build failed"
@@ -114,9 +173,15 @@ jobs:
         run: |
           ZIP_FILE=$(ls Fuxi-ResukiSU-*.zip 2>/dev/null | head -1)
           if [ -n "$ZIP_FILE" ] && [ -n "$TOKEN" ] && [ -n "$CHAT_ID" ]; then
+            SUSFS_LINE=""
+            NL=$'\n'
+            if [ "${{ inputs.hook_type }}" == "linehook" ]; then
+              SUSFS_LINE="${NL}✅ SUSFS ${SUSFS_VERSION:-v2.2.0}"
+            fi
+            CAPTION="✅ ReSukiSU 内核编译完成${NL}✅ 钩子: ${{ inputs.hook_type || 'Tracepoint' }}${NL}✅ ReKernel-X: ${{ inputs.rekernel_branch || 'main' }}${NL}✅ BBRplus（5.15）${NL}✅ LZ4 支持${SUSFS_LINE}${NL}构建号: ReSukiSU-${{ github.run_number }}"
             curl -s -F chat_id="$CHAT_ID" \
               -F document=@"$ZIP_FILE" \
-              -F "caption=✅ ReSukiSU 内核编译完成 - 构建号: AospaFuxi-${{ github.run_number }}" \
+              -F "caption=$CAPTION" \
               "https://api.telegram.org/bot${TOKEN}/sendDocument"
           else
             echo "Telegram upload skipped (missing token/chat_id or zip)"
@@ -130,7 +195,7 @@ jobs:
           if-no-files-found: warn
 
       - name: Create Release
-        if: github.ref == 'refs/heads/ReSukiSU-Build'
+        if: success()
         run: |
           GH_TOKEN=${{ github.token }} gh release create ReSukiSU-Build-${{ github.run_number }} Fuxi-ResukiSU-*.zip \
             --repo ${{ github.repository }} \
