@@ -19,8 +19,6 @@ on:
         default: Tracepoint
         type: choice
         options:
-          - upstream/main
-          - upstream/v9.2
           - Tracepoint
           - linehook
   push:
