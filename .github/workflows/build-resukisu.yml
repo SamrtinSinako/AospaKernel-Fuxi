@@ -171,12 +171,15 @@ jobs:
         run: |
           ZIP_FILE=$(ls Fuxi-ResukiSU-*.zip 2>/dev/null | head -1)
           if [ -n "$ZIP_FILE" ] && [ -n "$TOKEN" ] && [ -n "$CHAT_ID" ]; then
+            RKS_COMMITS=$(curl -sI 'https://api.github.com/repos/ReSukiSU/ReSukiSU/commits?per_page=1' 2>/dev/null | grep -o 'page=[0-9]*>; rel="last"' | grep -o '[0-9]*')
+            RKS_COMMITS=${RKS_COMMITS:-0}
+            RKS_VER=$((30000 + RKS_COMMITS + 700))
             SUSFS_LINE=""
             NL=$'\n'
             if [ "${{ inputs.hook_type }}" == "linehook" ]; then
               SUSFS_LINE="${NL}✅ SUSFS ${SUSFS_VERSION:-v2.2.0}"
             fi
-            CAPTION="✅ ReSukiSU 内核编译完成${NL}✅ 钩子: ${{ inputs.hook_type || 'Tracepoint' }}${NL}✅ ReKernel-X: ${{ inputs.rekernel_branch || 'main' }}${NL}✅ BBRplus（5.15）${NL}✅ LZ4 支持${SUSFS_LINE}${NL}构建号: ReSukiSU-${{ github.run_number }}"
+            CAPTION="✅ ReSukiSU 内核编译完成${NL}✅ ReSukiSU：${RKS_VER}${NL}✅ 钩子: ${{ inputs.hook_type || 'Tracepoint' }}${NL}✅ ReKernel-X: ${{ inputs.rekernel_branch || 'main' }}${NL}✅ BBR：5.15${NL}✅ Lz4 支持${SUSFS_LINE}${NL}构建号: ReSukiSU-${{ github.run_number }}"
             curl -s -F chat_id="$CHAT_ID" \
               -F document=@"$ZIP_FILE" \
               -F "caption=$CAPTION" \
