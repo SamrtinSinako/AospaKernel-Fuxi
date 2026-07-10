@@ -68,17 +68,11 @@ jobs:
           rm -rf Re-Kernel
           git clone --depth=1 -b ${{ inputs.rekernel_branch || 'main' }} https://github.com/myflavor/ReKernel-X.git Re-Kernel
           mkdir -p drivers/rekernel
-          # 兼容新结构(rekernel_x*)和旧结构(rekernel)
-          if ls Re-Kernel/LKM-Source/rekernel_x*.c 1>/dev/null 2>&1; then
-            cp -f Re-Kernel/LKM-Source/rekernel_x*.c drivers/rekernel/
-            cp -f Re-Kernel/LKM-Source/rekernel_x*.h drivers/rekernel/
-            echo 'obj-$(CONFIG_REKERNEL) += rekernel_x.o' > drivers/rekernel/Makefile
-            echo 'rekernel_x-y := rekernel_x_main.o rekernel_x_genl.o rekernel_x_netuid.o rekernel_x_frozen.o rekernel_x_binder.o rekernel_x_signal.o rekernel_x_netfilter.o rekernel_x_binder_kp.o' >> drivers/rekernel/Makefile
-          else
-            cp -f Re-Kernel/LKM-Source/rekernel.c drivers/rekernel/
-            cp -f Re-Kernel/LKM-Source/rekernel.h drivers/rekernel/
-            echo 'obj-$(CONFIG_REKERNEL) += rekernel.o' > drivers/rekernel/Makefile
-          fi
+          cp -f Re-Kernel/LKM-Source/rkx*.c drivers/rekernel/
+          cp -f Re-Kernel/LKM-Source/rkx*.h drivers/rekernel/
+          RKX_VER=$(cd Re-Kernel && git log --oneline -1 --format=%h 2>/dev/null)
+          sed 's/obj-m/obj-$(CONFIG_REKERNEL)/' Re-Kernel/LKM-Source/Makefile > drivers/rekernel/Makefile
+          echo "ccflags-y += -DRKX_VERSION=\\\"r${RKX_VER}\\\"" >> drivers/rekernel/Makefile
 
       - name: Setup SUSFS (optional)
         if: inputs.hook_type == 'linehook'
