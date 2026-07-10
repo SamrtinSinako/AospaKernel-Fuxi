@@ -70,7 +70,7 @@ jobs:
           mkdir -p drivers/rekernel
           cp -f Re-Kernel/LKM-Source/rkx*.c drivers/rekernel/
           cp -f Re-Kernel/LKM-Source/rkx*.h drivers/rekernel/
-          RKX_VER=$(cd Re-Kernel && git log --oneline -1 --format=%h 2>/dev/null)
+          RKX_VER=$(cd Re-Kernel && git describe --tags 2>/dev/null || git log --oneline -1 --format=%h 2>/dev/null)
           sed 's/obj-m/obj-$(CONFIG_REKERNEL)/' Re-Kernel/LKM-Source/Makefile > drivers/rekernel/Makefile
           echo "ccflags-y += -DRKX_VERSION=\\\"r${RKX_VER}\\\"" >> drivers/rekernel/Makefile
 
