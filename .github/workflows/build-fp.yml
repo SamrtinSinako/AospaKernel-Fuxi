@@ -95,8 +95,8 @@ jobs:
           if [ -n "$TOKEN" ] && [ -n "$CHAT_ID" ]; then
             NL=$'\n'
             FP_VER=$(curl -sL 'https://raw.githubusercontent.com/LyraVoid/FolkPatch/main/build.gradle.kts' 2>/dev/null | grep -o 'return [0-9]*' | grep -o '[0-9]*' || echo '114265')
-            RK_VER=$(cd Re-Kernel && git log --oneline -1 2>/dev/null | cut -d' ' -f1 | cut -c1-7 || echo "main")
-            CAPTION="✅ FolkPatch 内核编译完成${NL}✅ FolkPatch：${FP_VER}${NL}✅ 钩子: KernelPatch${NL}✅ ReKernel-X: ${RK_VER}${NL}✅ BBR：5.15${NL}✅ Lz4 支持${NL}构建号: FolkPatch-${{ github.run_number }}"
+            RK_VER=$(cd Re-Kernel && git describe --tags 2>/dev/null || git log --oneline -1 --format=%h 2>/dev/null)
+            CAPTION="✅ FolkPatch 内核编译完成${NL}✅ FolkPatch：${FP_VER}${NL}✅ Hook: KernelPatch${NL}✅ ReKernel-X: ${RK_VER}${NL}✅ BBR：5.15${NL}✅ LZ4：1.10${NL}构建号: FolkPatch-${{ github.run_number }}"
             curl -s -F chat_id="$CHAT_ID" \
               -F document=@"$ZIP_FILE" \
               -F "caption=$CAPTION" \
