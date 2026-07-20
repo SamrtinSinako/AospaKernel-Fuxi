@@ -173,7 +173,7 @@ jobs:
             if [ "${{ inputs.hook_type }}" == "linehook" ]; then
               SUSFS_LINE="${NL}✅ SUSFS ${SUSFS_VERSION:-v2.2.0}"
             fi
-            CAPTION="✅ ReSukiSU 内核编译完成${NL}✅ ReSukiSU：${RKS_VER}${NL}✅ 钩子: ${{ inputs.hook_type || 'Tracepoint' }}${NL}✅ ReKernel-X: ${{ inputs.rekernel_branch || 'main' }}${NL}✅ BBR：5.15${NL}✅ LZ4：1.10${SUSFS_LINE}${NL}构建号: ReSukiSU-${{ github.run_number }}"
+            CAPTION="✅ ReSukiSU 内核编译完成${NL}✅ ReSukiSU：${RKS_VER}${NL}✅ Hook: ${{ inputs.hook_type || 'Tracepoint' }}${NL}✅ ReKernel-X: ${RKX_VER}${NL}✅ BBR：5.15${NL}✅ LZ4：1.10${SUSFS_LINE}${NL}构建号: ReSukiSU-${{ github.run_number }}"
             curl -s -F chat_id="$CHAT_ID" \
               -F document=@"$ZIP_FILE" \
               -F "caption=$CAPTION" \
