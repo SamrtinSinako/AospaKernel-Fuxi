@@ -11,20 +11,6 @@ if [ -d Re-Kernel/.git ]; then
     git pull --ff-only 2>/dev/null && echo "[-] Updated to latest" || echo "[-] Pull failed, using current version"
     cd ..
 fi
-# Copy Re:Kernel LKM source to drivers/rekernel/
-if [ -d Re-Kernel/LKM-Source ]; then
-    echo "[+] Copying Re:Kernel LKM source to drivers/rekernel/..."
-    if ls Re-Kernel/LKM-Source/rekernel_x*.c 1>/dev/null 2>&1; then
-        cp -f Re-Kernel/LKM-Source/rekernel_x*.c drivers/rekernel/
-        cp -f Re-Kernel/LKM-Source/rekernel_x*.h drivers/rekernel/
-        echo 'obj-$(CONFIG_REKERNEL) += rekernel_x.o' > drivers/rekernel/Makefile
-        echo 'rekernel_x-y := rekernel_x_main.o rekernel_x_genl.o rekernel_x_netuid.o rekernel_x_frozen.o rekernel_x_binder.o rekernel_x_signal.o rekernel_x_netfilter.o rekernel_x_binder_kp.o' >> drivers/rekernel/Makefile
-    else
-        cp -f Re-Kernel/LKM-Source/rekernel.c drivers/rekernel/
-        cp -f Re-Kernel/LKM-Source/rekernel.h drivers/rekernel/
-        echo 'obj-$(CONFIG_REKERNEL) += rekernel.o' > drivers/rekernel/Makefile
-    fi
-fi
 
 MAKE_PARAMS="LLVM=1 LLVM_IAS=1 O=out LOCALVERSION=-AOSPA-BY@Samrtin"
 
