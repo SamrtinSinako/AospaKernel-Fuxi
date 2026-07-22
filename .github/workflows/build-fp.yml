@@ -2,9 +2,20 @@ name: 构建 FolkPatch 内核
 
 on:
   workflow_dispatch:
+    inputs:
+      rekernel_branch:
+        description: 'ReKernel-X分支'
+        required: false
+        default: main
+        type: choice
+        options:
+          - upstream/main
+          - upstream/v9.2
+          - main
+          - dev
   push:
     branches:
-      - FolkPatch-Build
+      - OnlyFP
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -41,13 +52,13 @@ jobs:
       - name: Setup Re:Kernel (with git for auto-update)
         run: |
           rm -rf Re-Kernel
-          git clone --depth=1 https://github.com/myflavor/ReKernel-X.git Re-Kernel
+          git clone --depth=1 -b ${{ inputs.rekernel_branch || 'main' }} https://github.com/myflavor/ReKernel-X.git Re-Kernel
           mkdir -p drivers/rekernel
-          cp -f Re-Kernel/LKM-Source/rekernel*.c drivers/rekernel/
-          cp -f Re-Kernel/LKM-Source/rekernel*.h drivers/rekernel/
-          # 生成适配内置编译的Makefile(多文件结构)
-          echo 'obj-$(CONFIG_REKERNEL) += rekernel.o' > drivers/rekernel/Makefile
-          echo 'rekernel-y := rekernel_x_main.o rekernel_x_genl.o rekernel_x_netuid.o rekernel_x_frozen.o rekernel_x_binder.o rekernel_x_signal.o rekernel_x_netfilter.o rekernel_x_binder_kp.o' >> drivers/rekernel/Makefile
+          cp -f Re-Kernel/LKM-Source/rkx*.c drivers/rekernel/
+          cp -f Re-Kernel/LKM-Source/rkx*.h drivers/rekernel/
+          RKX_VER=$(cd Re-Kernel && git describe --tags 2>/dev/null || git log --oneline -1 --format=%h 2>/dev/null)
+          sed 's/obj-m/obj-$(CONFIG_REKERNEL)/' Re-Kernel/LKM-Source/Makefile > drivers/rekernel/Makefile
+          echo "ccflags-y += -DRKX_VERSION=\\\"r${RKX_VER}\\\"" >> drivers/rekernel/Makefile
 
       - name: Prepare ccache
         run: mkdir -p ~/.ccache
@@ -64,8 +75,23 @@ jobs:
           export PATH="$(pwd)/toolchains/clang/bin:/usr/lib/ccache:$PATH"
           export CCACHE_DIR=~/.ccache
           ccache -M 8G
+          # 首次运行: 初始克隆KernelSU和ReKernel
+          if [ ! -d KernelSU/.git ]; then
+            rm -rf KernelSU
+            git clone --depth=1 https://github.com/ReSukiSU/ReSukiSU.git KernelSU
+            rm -f drivers/kernelsu
+            ln -sf ../KernelSU/kernel drivers/kernelsu
+          fi
+          if [ ! -d Re-Kernel/.git ]; then
+            rm -rf Re-Kernel
+            git clone --depth=1 -b ${{ inputs.rekernel_branch || 'main' }} https://github.com/myflavor/ReKernel-X.git Re-Kernel
+          fi
           bash build.sh
           cp ~/Fuxi-FolkPatch-*.zip ./ 2>/dev/null || true
+
+      - name: Set build info
+        run: |
+          echo "BUILD_NUM=${{ github.run_number }}" >> $GITHUB_ENV
 
       - name: Upload to Telegram
         env:
@@ -78,9 +104,18 @@ jobs:
             exit 0
           fi
           if [ -n "$TOKEN" ] && [ -n "$CHAT_ID" ]; then
+            NL=$'\n'
+            FP_VER=$(curl -sL 'https://raw.githubusercontent.com/LyraVoid/FolkPatch/main/build.gradle.kts' | grep -o 'return [0-9]*' | grep -o '[0-9]*')
+            KP_RAW=$(curl -sL 'https://raw.githubusercontent.com/bmax121/KernelPatch/main/version')
+            KP_MAJOR=$(echo "$KP_RAW" | grep MAJOR | cut -d' ' -f3)
+            KP_MINOR=$(echo "$KP_RAW" | grep MINOR | cut -d' ' -f3)
+            KP_PATCH=$(echo "$KP_RAW" | grep PATCH | cut -d' ' -f3)
+            KP_VER="${KP_MAJOR}.${KP_MINOR}.${KP_PATCH}"
+            RK_VER=$(cd Re-Kernel && git describe --tags 2>/dev/null || git log --oneline -1 --format=%h 2>/dev/null)
+            CAPTION="✅ FolkPatch 内核编译完成${NL}✅ FolkPatch：${FP_VER}${NL}✅ KernelPatch：${KP_VER}${NL}✅ ReKernel-X: ${RK_VER}${NL}✅ BBR：V1${NL}✅ Lz4：1.10${NL}构建号: FolkPatch-${{ github.run_number }}"
             curl -s -F chat_id="$CHAT_ID" \
               -F document=@"$ZIP_FILE" \
-              -F "caption=✅ FolkPatch 内核编译完成 - 构建号: FP-Build-${{ github.run_number }}" \
+              -F "caption=$CAPTION" \
               "https://api.telegram.org/bot${TOKEN}/sendDocument"
           else
             echo "Telegram upload skipped (missing token/chat_id)"
@@ -94,7 +129,7 @@ jobs:
           if-no-files-found: error
 
       - name: Create Release
-        if: github.event_name == 'push' && github.ref == 'refs/heads/FolkPatch-Build'
+        if: success() && github.ref_name == 'OnlyFP'
         run: |
           GH_TOKEN=${{ github.token }} gh release create FolkPatch-Build-${{ github.run_number }} Fuxi-FolkPatch-*.zip \
             --repo ${{ github.repository }} \

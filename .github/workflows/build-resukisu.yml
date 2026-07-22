@@ -65,6 +65,8 @@ jobs:
           # 生成适配内置编译的Makefile(多文件结构)
           echo 'obj-$(CONFIG_REKERNEL) += rekernel_x.o' > drivers/rekernel/Makefile
           echo 'rekernel_x-y := rekernel_x_main.o rekernel_x_genl.o rekernel_x_netuid.o rekernel_x_frozen.o rekernel_x_binder.o rekernel_x_signal.o rekernel_x_netfilter.o rekernel_x_binder_kp.o' >> drivers/rekernel/Makefile
+          RKX_VER=$(cd Re-Kernel && git describe --tags 2>/dev/null || git log --oneline -1 --format=%h 2>/dev/null)
+          echo "RKX_VER=r${RKX_VER}" >> $GITHUB_ENV
 
       - name: Prepare ccache
         run: mkdir -p ~/.ccache
