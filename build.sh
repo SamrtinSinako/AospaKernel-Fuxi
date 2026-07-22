@@ -20,12 +20,6 @@ if [ -d Re-Kernel/.git ]; then
     git pull --ff-only 2>/dev/null && echo "[-] Updated to latest" || echo "[-] Pull failed, using current version"
     cd ..
 fi
-# Copy Re:Kernel LKM source to drivers/rekernel/
-if [ -d Re-Kernel/LKM-Source ]; then
-    echo "[+] Copying Re:Kernel LKM source to drivers/rekernel/..."
-    cp -f Re-Kernel/LKM-Source/rekernel.c drivers/rekernel/
-    cp -f Re-Kernel/LKM-Source/rekernel.h drivers/rekernel/
-fi
 
 MAKE_PARAMS="LLVM=1 LLVM_IAS=1 O=out LOCALVERSION=-AOSPA-BY@Samrtin"
 
