@@ -70,6 +70,8 @@ jobs:
           RKX_VER=$(cd Re-Kernel && git describe --tags 2>/dev/null || git log --oneline -1 --format=%h 2>/dev/null)
           echo "RKX_VER=${RKX_VER}" >> $GITHUB_ENV
           sed 's/obj-m/obj-$(CONFIG_REKERNEL)/' Re-Kernel/LKM-Source/Makefile > drivers/rekernel/Makefile
+          # 去掉 ReKernel-X 上游 Makefile 里非法的 -mcpu=armv9-a (armv9-a 是架构名, -mcpu 只认具体核名, Neutron Clang 会拒绝)
+          sed -i 's/-mcpu=armv9-a//g' drivers/rekernel/Makefile
           echo "ccflags-y += -DRKX_VERSION=\\\"r${RKX_VER}\\\"" >> drivers/rekernel/Makefile
 
       - name: Setup SUSFS (optional)
