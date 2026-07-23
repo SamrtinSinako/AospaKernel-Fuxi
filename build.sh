@@ -81,14 +81,14 @@ if [ ${PIPESTATUS[0]} -ne 0 ]; then
 fi
 
 # Prepare AnyKernel3 flashable zip
-rm -rf out/AnyKernel3
+rm -rf out/AK3
 cp -r tools/AK3 out/
 
-cp out/arch/arm64/boot/Image out/AnyKernel3/Image
-cd out/AnyKernel3
-ZIPNAME="AospaFuxi-resukisu-$(date -u '+%Y%m%d-%H%M').zip"
+cp out/arch/arm64/boot/Image out/AK3/Image
+cd out/AK3
+ZIPNAME="Fuxi-ReSukiSU-$(date -u '+%Y%m%d-%H%M').zip"
 zip -r9 "$ZIPNAME" .
 find . -not -name "*.zip" -not -name "." -exec rm -rf {} + 2>/dev/null
-echo "[-] Zip created in: out/AnyKernel3/"
+echo "[-] Zip created in: out/AK3/"
 cp "$ZIPNAME" ~/
 echo "[-] Also copied to: ~/$ZIPNAME"

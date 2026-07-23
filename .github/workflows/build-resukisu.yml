@@ -150,7 +150,7 @@ jobs:
             cp -r tools/AK3 out/
             cp out/arch/arm64/boot/Image out/AK3/Image
             cd out/AK3
-            ZIPNAME="Fuxi-ResukiSU-$(date -u '+%Y%m%d-%H%M').zip"
+            ZIPNAME="Fuxi-ReSukiSU-$(date -u '+%Y%m%d-%H%M').zip"
             zip -r9 "$ZIPNAME" .
             mv "$ZIPNAME" ../../
             echo "Zip created"
@@ -164,7 +164,7 @@ jobs:
           TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           CHAT_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
         run: |
-          ZIP_FILE=$(ls Fuxi-ResukiSU-*.zip 2>/dev/null | head -1)
+          ZIP_FILE=$(ls Fuxi-ReSukiSU-*.zip 2>/dev/null | head -1)
           if [ -n "$ZIP_FILE" ] && [ -n "$TOKEN" ] && [ -n "$CHAT_ID" ]; then
             RKS_COMMITS=$(curl -sI 'https://api.github.com/repos/ReSukiSU/ReSukiSU/commits?per_page=1' 2>/dev/null | grep -o 'page=[0-9]*>; rel="last"' | grep -o '[0-9]*')
             RKS_COMMITS=${RKS_COMMITS:-0}
@@ -187,13 +187,13 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: AospaFuxi-Kernel
-          path: "Fuxi-ResukiSU-*.zip"
+          path: "Fuxi-ReSukiSU-*.zip"
           if-no-files-found: warn
 
       - name: Create Release
         if: success()
         run: |
-          GH_TOKEN=${{ github.token }} gh release create ReSukiSU-Build-${{ github.run_number }} Fuxi-ResukiSU-*.zip \
+          GH_TOKEN=${{ github.token }} gh release create ReSukiSU-Build-${{ github.run_number }} Fuxi-ReSukiSU-*.zip \
             --repo ${{ github.repository }} \
             --title "ReSukiSU 内核 #${{ github.run_number }}" \
             --generate-notes
