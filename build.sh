@@ -112,6 +112,13 @@ else
         rm -rf "${KP_DIR}/assets"
         rm -f /tmp/fp.apk
         echo "${FP_LATEST}" > "${FP_VERSION_FILE}"
+        # 从 APK 文件名提取真实 versionCode (如 FolkPatch_115002_5.0_on_main-release.apk -> 115002),
+        # 与 release 实际版本保持一致, 避免读 FolkPatch main 分支提前 bump 的版本号
+        FP_CODE=$(basename "${FP_DL_URL}" | grep -oP '(?<=FolkPatch_)\d+')
+        if [ -n "$FP_CODE" ]; then
+            echo "${FP_CODE}" > "${KP_DIR}/fp_versioncode.txt"
+            echo "[-] FolkPatch versionCode: ${FP_CODE}"
+        fi
         echo "[-] kpimg extracted from FolkPatch ${FP_LATEST}"
     else
         echo "[-] FolkPatch ${FP_LATEST} already up to date"

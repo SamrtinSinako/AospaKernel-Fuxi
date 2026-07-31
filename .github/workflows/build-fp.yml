@@ -106,8 +106,9 @@ jobs:
           fi
           if [ -n "$TOKEN" ] && [ -n "$CHAT_ID" ]; then
             NL=$'\n'
-            FP_VER=$(curl -sL 'https://raw.githubusercontent.com/LyraVoid/FolkPatch/main/build.gradle.kts' | grep -o 'return [0-9]*' | grep -o '[0-9]*')
-            FP_VER=${FP_VER:-unknown}
+            # 优先读实际下载的 FolkPatch versionCode(build.sh 从 APK 文件名提取),
+            # 回退到 release tag, 不再读 FolkPatch main 分支(可能领先 release 一个版本)
+            FP_VER=$(cat KernelPatch/fp_versioncode.txt 2>/dev/null || cat KernelPatch/fp_version.txt 2>/dev/null || echo "unknown")
             KP_VER=$(cat KernelPatch/kpimg.version 2>/dev/null || cat KernelPatch/kptools_version.txt 2>/dev/null || echo "unknown")
             RK_VER=$(curl -sL 'https://api.github.com/repos/myflavor/ReKernel-X/tags' | grep -oP '"name":\s*"\K[^"]+' | head -1)
             RK_VER=${RK_VER:-unknown}
