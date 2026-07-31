@@ -77,30 +77,7 @@ KP_BASE_URL="https://github.com/LyraVoid/KernelPatch/releases/download"
 
 mkdir -p ${KP_DIR}
 
-# 自动获取 LyraVoid fork 最新 kptools（与 kpimg 配套）
-KP_VERSION_FILE="${KP_DIR}/kptools_version.txt"
-KP_LATEST=$(curl -sL https://api.github.com/repos/LyraVoid/KernelPatch/releases/latest 2>/dev/null | grep -oP '"tag_name":\s*"([^"]*)"' | cut -d'"' -f4)
-if [ -z "$KP_LATEST" ]; then
-    [ -f "${KP_VERSION_FILE}" ] && KP_LATEST=$(cat "${KP_VERSION_FILE}") || KP_LATEST="0.13.2"
-    echo "[-] GitHub API rate limited, using kptools ${KP_LATEST}"
-else
-    KP_CACHED=""
-    [ -f "${KP_VERSION_FILE}" ] && KP_CACHED=$(cat "${KP_VERSION_FILE}")
-    if [ "${KP_LATEST}" != "${KP_CACHED}" ]; then
-        echo "[+] New kptools version: ${KP_LATEST} (cached: ${KP_CACHED:-none})"
-        rm -f "${KP_DIR}/kptools-linux"
-        echo "${KP_LATEST}" > "${KP_VERSION_FILE}"
-    fi
-fi
-
-# 下载 kptools-linux（主机工具，只在版本更新时下载）
-if [ ! -f "${KP_DIR}/kptools-linux" ]; then
-    echo "[+] Downloading kptools-linux ${KP_LATEST}..."
-    curl -L "${KP_BASE_URL}/${KP_LATEST}/kptools-linux" -o "${KP_DIR}/kptools-linux"
-    chmod +x "${KP_DIR}/kptools-linux"
-fi
-
-# 自动获取最新 FolkPatch release 并提取 kpimg
+# 自动获取最新 FolkPatch release 并提取 kpimg + kpimg.version
 FP_VERSION_FILE="${KP_DIR}/fp_version.txt"
 echo "[+] Checking latest FolkPatch release..."
 FP_LATEST=$(curl -sL https://api.github.com/repos/LyraVoid/FolkPatch/releases/latest 2>/dev/null | grep -oP '"tag_name":\s*"([^"]*)"' | cut -d'"' -f4)
@@ -126,8 +103,12 @@ else
         fi
         echo "[+] Downloading ${FP_LATEST} APK to extract kpimg..."
         curl -L "${FP_DL_URL}" -o /tmp/fp.apk
-        unzip -o /tmp/fp.apk assets/kpimg -d "${KP_DIR}/" >/dev/null 2>&1
+        rm -rf "${KP_DIR}/assets"
+        unzip -o /tmp/fp.apk 'assets/kpimg' 'assets/kpimg.version' -d "${KP_DIR}/" >/dev/null 2>&1
         mv "${KP_DIR}/assets/kpimg" "${KP_DIR}/kpimg-fp"
+        if [ -f "${KP_DIR}/assets/kpimg.version" ]; then
+            mv "${KP_DIR}/assets/kpimg.version" "${KP_DIR}/kpimg.version"
+        fi
         rm -rf "${KP_DIR}/assets"
         rm -f /tmp/fp.apk
         echo "${FP_LATEST}" > "${FP_VERSION_FILE}"
@@ -135,6 +116,33 @@ else
     else
         echo "[-] FolkPatch ${FP_LATEST} already up to date"
     fi
+fi
+
+# kptools 版本跟随 FolkPatch 内置 kpimg 版本(保证配套), 缓存缺失时回退 LyraVoid 最新
+KP_VERSION_FILE="${KP_DIR}/kptools_version.txt"
+KP_LATEST=""
+[ -f "${KP_DIR}/kpimg.version" ] && KP_LATEST=$(cat "${KP_DIR}/kpimg.version")
+if [ -z "$KP_LATEST" ]; then
+    KP_LATEST=$(curl -sL https://api.github.com/repos/LyraVoid/KernelPatch/releases/latest 2>/dev/null | grep -oP '"tag_name":\s*"([^"]*)"' | cut -d'"' -f4)
+fi
+if [ -z "$KP_LATEST" ]; then
+    [ -f "${KP_VERSION_FILE}" ] && KP_LATEST=$(cat "${KP_VERSION_FILE}") || KP_LATEST="0.13.2"
+    echo "[-] GitHub API rate limited, using kptools ${KP_LATEST}"
+else
+    KP_CACHED=""
+    [ -f "${KP_VERSION_FILE}" ] && KP_CACHED=$(cat "${KP_VERSION_FILE}")
+    if [ "${KP_LATEST}" != "${KP_CACHED}" ]; then
+        echo "[+] New kptools version: ${KP_LATEST} (cached: ${KP_CACHED:-none})"
+        rm -f "${KP_DIR}/kptools-linux"
+        echo "${KP_LATEST}" > "${KP_VERSION_FILE}"
+    fi
+fi
+
+# 下载 kptools-linux（主机工具，只在版本更新时下载）
+if [ ! -f "${KP_DIR}/kptools-linux" ]; then
+    echo "[+] Downloading kptools-linux ${KP_LATEST}..."
+    curl -L "${KP_BASE_URL}/${KP_LATEST}/kptools-linux" -o "${KP_DIR}/kptools-linux"
+    chmod +x "${KP_DIR}/kptools-linux"
 fi
 
 echo "[+] Applying FolkPatch (KernelPatch) to Image..."
