@@ -106,9 +106,8 @@ jobs:
           fi
           if [ -n "$TOKEN" ] && [ -n "$CHAT_ID" ]; then
             NL=$'\n'
-            FP_TAG=$(curl -sL 'https://api.github.com/repos/LyraVoid/FolkPatch/releases/latest' | grep -oP '"tag_name":\s*"\K[^"]+' | head -1)
-            FP_CODE=$(curl -sL 'https://raw.githubusercontent.com/LyraVoid/FolkPatch/main/build.gradle.kts' | grep -o 'return [0-9]*' | grep -o '[0-9]*')
-            FP_VER="${FP_TAG:-unknown} (${FP_CODE:-?})"
+            FP_VER=$(curl -sL 'https://raw.githubusercontent.com/LyraVoid/FolkPatch/main/build.gradle.kts' | grep -o 'return [0-9]*' | grep -o '[0-9]*')
+            FP_VER=${FP_VER:-unknown}
             KP_RAW=$(curl -sL 'https://raw.githubusercontent.com/bmax121/KernelPatch/main/version')
             KP_MAJOR=$(echo "$KP_RAW" | grep MAJOR | cut -d' ' -f3)
             KP_MINOR=$(echo "$KP_RAW" | grep MINOR | cut -d' ' -f3)
