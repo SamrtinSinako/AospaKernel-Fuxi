@@ -15,7 +15,7 @@ on:
           - dev
   push:
     branches:
-      - OnlyFP
+      - FolkPatch-Build
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -131,7 +131,7 @@ jobs:
           if-no-files-found: error
 
       - name: Create Release
-        if: success() && github.ref_name == 'OnlyFP'
+        if: success() && github.ref_name == 'FolkPatch-Build'
         run: |
           GH_TOKEN=${{ github.token }} gh release create FolkPatch-Build-${{ github.run_number }} Fuxi-FolkPatch-*.zip \
             --repo ${{ github.repository }} \
