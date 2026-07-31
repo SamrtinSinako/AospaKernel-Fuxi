@@ -108,11 +108,7 @@ jobs:
             NL=$'\n'
             FP_VER=$(curl -sL 'https://raw.githubusercontent.com/LyraVoid/FolkPatch/main/build.gradle.kts' | grep -o 'return [0-9]*' | grep -o '[0-9]*')
             FP_VER=${FP_VER:-unknown}
-            KP_RAW=$(curl -sL 'https://raw.githubusercontent.com/bmax121/KernelPatch/main/version')
-            KP_MAJOR=$(echo "$KP_RAW" | grep MAJOR | cut -d' ' -f3)
-            KP_MINOR=$(echo "$KP_RAW" | grep MINOR | cut -d' ' -f3)
-            KP_PATCH=$(echo "$KP_RAW" | grep PATCH | cut -d' ' -f3)
-            KP_VER="${KP_MAJOR}.${KP_MINOR}.${KP_PATCH}"
+            KP_VER=$(cat KernelPatch/kpimg.version 2>/dev/null || cat KernelPatch/kptools_version.txt 2>/dev/null || echo "unknown")
             RK_VER=$(curl -sL 'https://api.github.com/repos/myflavor/ReKernel-X/tags' | grep -oP '"name":\s*"\K[^"]+' | head -1)
             RK_VER=${RK_VER:-unknown}
             CAPTION="✅ FolkPatch 内核编译完成${NL}✅ FolkPatch：${FP_VER}${NL}✅ KernelPatch：${KP_VER}${NL}✅ ReKernel-X: ${RK_VER}${NL}✅ BBR：V1${NL}✅ Lz4：1.10${NL}构建号: FolkPatch-${{ github.run_number }}"
