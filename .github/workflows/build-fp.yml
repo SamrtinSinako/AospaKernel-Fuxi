@@ -76,13 +76,7 @@ jobs:
           export PATH="$(pwd)/toolchains/clang/bin:/usr/lib/ccache:$PATH"
           export CCACHE_DIR=~/.ccache
           ccache -M 8G
-          # 首次运行: 初始克隆KernelSU和ReKernel
-          if [ ! -d KernelSU/.git ]; then
-            rm -rf KernelSU
-            git clone --depth=1 https://github.com/ReSukiSU/ReSukiSU.git KernelSU
-            rm -f drivers/kernelsu
-            ln -sf ../KernelSU/kernel drivers/kernelsu
-          fi
+          # 首次运行: 初始克隆ReKernel
           if [ ! -d Re-Kernel/.git ]; then
             rm -rf Re-Kernel
             git clone --depth=1 -b ${{ inputs.rekernel_branch || 'main' }} https://github.com/myflavor/ReKernel-X.git Re-Kernel
