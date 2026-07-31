@@ -89,40 +89,34 @@ if [ -z "$FP_LATEST" ]; then
         exit 1
     fi
 else
-    FP_CACHED=""
-    [ -f "${FP_VERSION_FILE}" ] && FP_CACHED=$(cat "${FP_VERSION_FILE}")
-
-    if [ "${FP_LATEST}" != "${FP_CACHED}" ] || [ ! -f "${KP_DIR}/kpimg-fp" ]; then
-        echo "[+] New version detected: ${FP_LATEST} (cached: ${FP_CACHED:-none})"
-        FP_APK_URL="https://github.com/LyraVoid/FolkPatch/releases/download/${FP_LATEST}/FolkPatch_*.apk"
-        # GitHub redirects wildcard, need exact filename - use API to find it
-        FP_DL_URL=$(curl -sL "https://api.github.com/repos/LyraVoid/FolkPatch/releases/tags/${FP_LATEST}" 2>/dev/null | grep -oP '"browser_download_url":\s*"[^"]*\.apk"' | cut -d'"' -f4 | head -1)
-        if [ -z "$FP_DL_URL" ]; then
-            echo "[!] Cannot find APK download URL for ${FP_LATEST}"
-            exit 1
-        fi
-        echo "[+] Downloading ${FP_LATEST} APK to extract kpimg..."
-        curl -L "${FP_DL_URL}" -o /tmp/fp.apk
-        rm -rf "${KP_DIR}/assets"
-        unzip -o /tmp/fp.apk 'assets/kpimg' 'assets/kpimg.version' -d "${KP_DIR}/" >/dev/null 2>&1
-        mv "${KP_DIR}/assets/kpimg" "${KP_DIR}/kpimg-fp"
-        if [ -f "${KP_DIR}/assets/kpimg.version" ]; then
-            mv "${KP_DIR}/assets/kpimg.version" "${KP_DIR}/kpimg.version"
-        fi
-        rm -rf "${KP_DIR}/assets"
-        rm -f /tmp/fp.apk
-        echo "${FP_LATEST}" > "${FP_VERSION_FILE}"
-        # 从 APK 文件名提取真实 versionCode (如 FolkPatch_115002_5.0_on_main-release.apk -> 115002),
-        # 与 release 实际版本保持一致, 避免读 FolkPatch main 分支提前 bump 的版本号
-        FP_CODE=$(basename "${FP_DL_URL}" | grep -oP '(?<=FolkPatch_)\d+')
-        if [ -n "$FP_CODE" ]; then
-            echo "${FP_CODE}" > "${KP_DIR}/fp_versioncode.txt"
-            echo "[-] FolkPatch versionCode: ${FP_CODE}"
-        fi
-        echo "[-] kpimg extracted from FolkPatch ${FP_LATEST}"
-    else
-        echo "[-] FolkPatch ${FP_LATEST} already up to date"
+    # 每次构建都强制下载最新 release 的 APK, 保证 kpimg 始终是最新发布版.
+    # 注意: FolkPatch 会在同一 tag 下更新 APK 资产(如 5.0 下 115002->115003),
+    # 所以不能只靠 tag 判断更新, 直接每次拉取.
+    echo "[+] Downloading latest FolkPatch release ${FP_LATEST} APK..."
+    FP_DL_URL=$(curl -sL "https://api.github.com/repos/LyraVoid/FolkPatch/releases/tags/${FP_LATEST}" 2>/dev/null | grep -oP '"browser_download_url":\s*"[^"]*\.apk"' | cut -d'"' -f4 | head -1)
+    if [ -z "$FP_DL_URL" ]; then
+        echo "[!] Cannot find APK download URL for ${FP_LATEST}"
+        exit 1
     fi
+    echo "[+] Downloading ${FP_LATEST} APK to extract kpimg..."
+    curl -L "${FP_DL_URL}" -o /tmp/fp.apk
+    rm -rf "${KP_DIR}/assets"
+    unzip -o /tmp/fp.apk 'assets/kpimg' 'assets/kpimg.version' -d "${KP_DIR}/" >/dev/null 2>&1
+    mv "${KP_DIR}/assets/kpimg" "${KP_DIR}/kpimg-fp"
+    if [ -f "${KP_DIR}/assets/kpimg.version" ]; then
+        mv "${KP_DIR}/assets/kpimg.version" "${KP_DIR}/kpimg.version"
+    fi
+    rm -rf "${KP_DIR}/assets"
+    rm -f /tmp/fp.apk
+    echo "${FP_LATEST}" > "${FP_VERSION_FILE}"
+    # 从 APK 文件名提取真实 versionCode (如 FolkPatch_115003_5.0_on_main-release.apk -> 115003),
+    # 与 release 实际版本保持一致, 避免读 FolkPatch main 分支提前 bump 的版本号
+    FP_CODE=$(basename "${FP_DL_URL}" | grep -oP '(?<=FolkPatch_)\d+')
+    if [ -n "$FP_CODE" ]; then
+        echo "${FP_CODE}" > "${KP_DIR}/fp_versioncode.txt"
+        echo "[-] FolkPatch versionCode: ${FP_CODE}"
+    fi
+    echo "[-] kpimg extracted from FolkPatch ${FP_LATEST}"
 fi
 
 # kptools 版本跟随 FolkPatch 内置 kpimg 版本(保证配套), 缓存缺失时回退 LyraVoid 最新
