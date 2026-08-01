@@ -70,7 +70,11 @@ jobs:
           mkdir -p drivers/rekernel
           cp -f Re-Kernel/LKM-Source/rkx*.c drivers/rekernel/
           cp -f Re-Kernel/LKM-Source/rkx*.h drivers/rekernel/
-          RKX_VER=$(curl -sL 'https://api.github.com/repos/myflavor/ReKernel-X/tags' | grep -oP '"name":\s*"\K[^"]+' | head -1)
+          # 版本号规则: 发布分支main显示最新tag(如1.3), 无tag分支(dev等)显示commit hash
+          RKX_VER=$(cd Re-Kernel && git rev-parse --short HEAD 2>/dev/null)
+          if [ "${{ inputs.rekernel_branch || 'main' }}" = "main" ]; then
+              RKX_VER=$(curl -sL 'https://api.github.com/repos/myflavor/ReKernel-X/tags' | grep -oP '"name":\s*"\K[^"]+' | head -1)
+          fi
           RKX_VER=${RKX_VER:-unknown}
           echo "RKX_VER=${RKX_VER}" >> $GITHUB_ENV
           sed 's/obj-m/obj-$(CONFIG_REKERNEL)/' Re-Kernel/LKM-Source/Makefile > drivers/rekernel/Makefile
