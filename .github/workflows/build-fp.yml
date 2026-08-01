@@ -56,8 +56,14 @@ jobs:
           mkdir -p drivers/rekernel
           cp -f Re-Kernel/LKM-Source/rkx*.c drivers/rekernel/
           cp -f Re-Kernel/LKM-Source/rkx*.h drivers/rekernel/
-          # 取实际构建分支的版本: 有tag用tag(如v1.3), 无tag(如dev)用commit hash
-          RKX_VER=$(cd Re-Kernel && { git describe --tags 2>/dev/null || git rev-parse --short HEAD 2>/dev/null || echo unknown; })
+          # 版本号规则: 发布分支main显示最新tag(如1.3), 无tag分支(dev等)显示commit hash
+          RK_BRANCH="${{ inputs.rekernel_branch || 'main' }}"
+          if [ "$RK_BRANCH" = "main" ]; then
+              RKX_VER=$(curl -sL 'https://api.github.com/repos/myflavor/ReKernel-X/tags' | grep -oP '"name":\s*"\K[^"]+' | head -1)
+          else
+              RKX_VER=$(cd Re-Kernel && git rev-parse --short HEAD 2>/dev/null)
+          fi
+          RKX_VER=${RKX_VER:-unknown}
           sed 's/obj-m/obj-$(CONFIG_REKERNEL)/' Re-Kernel/LKM-Source/Makefile > drivers/rekernel/Makefile
           echo "ccflags-y += -DRKX_VERSION=\\\"r${RKX_VER}\\\"" >> drivers/rekernel/Makefile
 
@@ -104,11 +110,14 @@ jobs:
             # 回退到 release tag, 不再读 FolkPatch main 分支(可能领先 release 一个版本)
             FP_VER=$(cat KernelPatch/fp_versioncode.txt 2>/dev/null || cat KernelPatch/fp_version.txt 2>/dev/null || echo "unknown")
             KP_VER=$(cat KernelPatch/kpimg.version 2>/dev/null || cat KernelPatch/kptools_version.txt 2>/dev/null || echo "unknown")
-            # 显示实际构建分支的真实版本: 有tag用tag, 无tag(如dev)用commit hash
-            RK_TAG=$(cd Re-Kernel && git describe --tags 2>/dev/null)
-            RK_HASH=$(cd Re-Kernel && git rev-parse --short HEAD 2>/dev/null)
+            # 版本号规则: 发布分支main显示最新tag(如1.3), 无tag分支(dev等)显示commit hash
             RK_BRANCH="${{ inputs.rekernel_branch || 'main' }}"
-            RK_VER="${RK_TAG:-${RK_HASH:-unknown}}@${RK_BRANCH}"
+            if [ "$RK_BRANCH" = "main" ]; then
+                RK_VER=$(curl -sL 'https://api.github.com/repos/myflavor/ReKernel-X/tags' | grep -oP '"name":\s*"\K[^"]+' | head -1)
+            else
+                RK_VER=$(cd Re-Kernel && git rev-parse --short HEAD 2>/dev/null)
+            fi
+            RK_VER="${RK_VER:-unknown}@${RK_BRANCH}"
             CAPTION="✅ FolkPatch 内核编译完成${NL}✅ FolkPatch：${FP_VER}${NL}✅ KernelPatch：${KP_VER}${NL}✅ ReKernel-X: ${RK_VER}${NL}✅ BBR：V1${NL}✅ Lz4：1.10${NL}构建号: FolkPatch-${{ github.run_number }}"
             curl -s -F chat_id="$CHAT_ID" \
               -F document=@"$ZIP_FILE" \
